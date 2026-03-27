@@ -5,6 +5,7 @@ import com.esser.maintenanceapp.dto.UserResponseDto;
 import com.esser.maintenanceapp.entity.User;
 import com.esser.maintenanceapp.service.UserService;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class UserController {
     }
 
     @PostMapping
-    public UserResponseDto createUser(@RequestBody UserRequestDto dto) {
+    public UserResponseDto createUser(@Valid @RequestBody UserRequestDto dto) {
         User user = User.builder()
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())

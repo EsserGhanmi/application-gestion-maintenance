@@ -4,6 +4,7 @@ import com.esser.maintenanceapp.dto.EquipmentRequestDto;
 import com.esser.maintenanceapp.dto.EquipmentResponseDto;
 import com.esser.maintenanceapp.entity.Equipment;
 import com.esser.maintenanceapp.service.EquipmentService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class EquipmentController {
     }
 
     @PostMapping
-    public EquipmentResponseDto createEquipment(@RequestBody EquipmentRequestDto dto) {
+    public EquipmentResponseDto createEquipment(@Valid @RequestBody EquipmentRequestDto dto) {
         Equipment equipment = Equipment.builder()
                 .name(dto.getName())
                 .serialNumber(dto.getSerialNumber())
