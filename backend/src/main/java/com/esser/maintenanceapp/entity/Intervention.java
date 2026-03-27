@@ -4,6 +4,8 @@ import com.esser.maintenanceapp.enums.InterventionStatus;
 import com.esser.maintenanceapp.enums.Priority;
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import java.time.LocalDateTime;
 
@@ -52,4 +54,7 @@ public class Intervention {
     @ManyToOne
     @JoinColumn(name = "assigned_technician_id")
     private User assignedTechnician;
+
+    @OneToMany(mappedBy = "intervention", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InterventionHistory> historyEntries = new ArrayList<>();
 }
