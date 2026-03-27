@@ -1,11 +1,12 @@
 package com.esser.maintenanceapp.controller;
 
+import com.esser.maintenanceapp.dto.EquipmentRequestDto;
+import com.esser.maintenanceapp.dto.EquipmentResponseDto;
 import com.esser.maintenanceapp.entity.Equipment;
 import com.esser.maintenanceapp.service.EquipmentService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/equipments")
@@ -18,22 +19,35 @@ public class EquipmentController {
     }
 
     @PostMapping
-    public Equipment createEquipment(@RequestBody Equipment equipment) {
-        return equipmentService.saveEquipment(equipment);
+    public EquipmentResponseDto createEquipment(@RequestBody EquipmentRequestDto dto) {
+        Equipment equipment = Equipment.builder()
+                .name(dto.getName())
+                .serialNumber(dto.getSerialNumber())
+                .model(dto.getModel())
+                .status(dto.getStatus())
+                .build();
+
+        Equipment savedEquipment = equipmentService.saveEquipment(equipment);
+
+        return EquipmentResponseDto.builder()
+                .id(savedEquipment.getId())
+                .name(savedEquipment.getName())
+                .serialNumber(savedEquipment.getSerialNumber())
+                .model(savedEquipment.getModel())
+                .status(savedEquipment.getStatus())
+                .build();
     }
 
     @GetMapping
-    public List<Equipment> getAllEquipments() {
-        return equipmentService.getAllEquipments();
-    }
-
-    @GetMapping("/{id}")
-    public Optional<Equipment> getEquipmentById(@PathVariable Long id) {
-        return equipmentService.getEquipmentById(id);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteEquipment(@PathVariable Long id) {
-        equipmentService.deleteEquipment(id);
+    public List<EquipmentResponseDto> getAllEquipments() {
+        return equipmentService.getAllEquipments().stream()
+                .map(equipment -> EquipmentResponseDto.builder()
+                        .id(equipment.getId())
+                        .name(equipment.getName())
+                        .serialNumber(equipment.getSerialNumber())
+                        .model(equipment.getModel())
+                        .status(equipment.getStatus())
+                        .build())
+                .toList();
     }
 }
