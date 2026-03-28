@@ -3,6 +3,9 @@ package com.esser.maintenanceapp.service.impl;
 import com.esser.maintenanceapp.dto.InterventionRequestDto;
 import com.esser.maintenanceapp.entity.Equipment;
 import com.esser.maintenanceapp.entity.Intervention;
+import com.esser.maintenanceapp.enums.Role;
+import com.esser.maintenanceapp.exception.BadRequestException;
+import com.esser.maintenanceapp.exception.ResourceNotFoundException;
 import com.esser.maintenanceapp.entity.InterventionHistory;
 import com.esser.maintenanceapp.entity.User;
 import com.esser.maintenanceapp.enums.InterventionStatus;
@@ -12,11 +15,12 @@ import com.esser.maintenanceapp.repository.InterventionRepository;
 import com.esser.maintenanceapp.repository.UserRepository;
 import com.esser.maintenanceapp.service.InterventionService;
 import org.springframework.stereotype.Service;
-import com.esser.maintenanceapp.enums.Role;
+
 
 import java.time.LocalDateTime;
-import java.util.List;
+
 import java.util.Comparator;
+import java.util.List;
 
 
 @Service
@@ -46,16 +50,15 @@ public class InterventionServiceImpl implements InterventionService {
     @Override
     public Intervention createIntervention(InterventionRequestDto dto) {
         Equipment equipment = equipmentRepository.findById(dto.getEquipmentId())
-                .orElseThrow(() -> new RuntimeException("Equipment not found with id: " + dto.getEquipmentId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Equipment not found with id: " + dto.getEquipmentId()));
 
         User createdBy = userRepository.findById(dto.getCreatedById())
-                .orElseThrow(() -> new RuntimeException("User (creator) not found with id: " + dto.getCreatedById()));
+                .orElseThrow(() -> new ResourceNotFoundException("Technician not found with id: " + dto.getAssignedTechnicianId()));
 
         User assignedTechnician = null;
         if (dto.getAssignedTechnicianId() != null) {
             assignedTechnician = userRepository.findById(dto.getAssignedTechnicianId())
-                    .orElseThrow(() -> new RuntimeException("Technician not found with id: " + dto.getAssignedTechnicianId()));
-            validateTechnicianRole(assignedTechnician);
+                    .orElseThrow(() -> new ResourceNotFoundException("Technician not found with id: " + dto.getAssignedTechnicianId()));
         }
         InterventionStatus status = dto.getStatus() != null ? dto.getStatus() : InterventionStatus.TO_DO;
 
@@ -88,22 +91,23 @@ public class InterventionServiceImpl implements InterventionService {
     @Override
     public Intervention getInterventionById(Long id) {
         return interventionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + id)); }
+                .orElseThrow(() -> new ResourceNotFoundException("Intervention not found with id: " + id));
+    }
 
     @Override
     public void deleteIntervention(Long id) {
         Intervention intervention = interventionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Intervention not found with id: " + id));
         interventionRepository.delete(intervention);
     }
 
     @Override
     public Intervention updateStatus(Long interventionId, InterventionStatus status, Long changedByUserId) {
         Intervention intervention = interventionRepository.findById(interventionId)
-                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + interventionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Intervention not found with id: " + interventionId));
 
         User changedBy = userRepository.findById(changedByUserId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + changedByUserId));
 
         InterventionStatus oldStatus = intervention.getStatus();
         intervention.setStatus(status);
@@ -111,7 +115,8 @@ public class InterventionServiceImpl implements InterventionService {
         if (status == InterventionStatus.COMPLETED) {
             intervention.setClosedAt(LocalDateTime.now());
         } else {
-            intervention.setClosedAt(null); }
+            intervention.setClosedAt(null);
+        }
 
         Intervention updatedIntervention = interventionRepository.save(intervention);
 
@@ -125,14 +130,14 @@ public class InterventionServiceImpl implements InterventionService {
     @Override
     public Intervention assignTechnician(Long interventionId, Long technicianId, Long changedByUserId) {
         Intervention intervention = interventionRepository.findById(interventionId)
-                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + interventionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Intervention not found with id: " + interventionId));
 
         User technician = userRepository.findById(technicianId)
-                .orElseThrow(() -> new RuntimeException("Technician not found with id: " + technicianId));
+                .orElseThrow(() -> new ResourceNotFoundException("Technician not found with id: " + technicianId));
         validateTechnicianRole(technician);
 
         User changedBy = userRepository.findById(changedByUserId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + changedByUserId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + changedByUserId));
 
         String oldValue = intervention.getAssignedTechnician() != null
                 ? intervention.getAssignedTechnician().getId().toString()
@@ -150,7 +155,7 @@ public class InterventionServiceImpl implements InterventionService {
     @Override
     public List<InterventionHistory> getInterventionHistory(Long interventionId) {
         Intervention intervention = interventionRepository.findById(interventionId)
-                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + interventionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Intervention not found with id: " + interventionId));
 
         return interventionHistoryRepository.findByInterventionId(intervention.getId()).stream()
                 .sorted(Comparator.comparing(InterventionHistory::getChangedAt))
@@ -159,7 +164,7 @@ public class InterventionServiceImpl implements InterventionService {
 
     private void validateTechnicianRole(User technician) {
         if (technician.getRole() != Role.TECHNICIAN) {
-            throw new RuntimeException("User with id " + technician.getId() + " is not TECHNICIAN");
+            throw new BadRequestException("User with id " + technician.getId() + " is not TECHNICIAN");
         }
     }
 
