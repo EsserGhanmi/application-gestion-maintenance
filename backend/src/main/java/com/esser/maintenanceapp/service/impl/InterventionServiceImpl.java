@@ -12,13 +12,19 @@ import com.esser.maintenanceapp.repository.InterventionRepository;
 import com.esser.maintenanceapp.repository.UserRepository;
 import com.esser.maintenanceapp.service.InterventionService;
 import org.springframework.stereotype.Service;
+import com.esser.maintenanceapp.enums.Role;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.Comparator;
+
 
 @Service
 public class InterventionServiceImpl implements InterventionService {
+
+    private static final String ACTION_CREATED = "CREATED";
+    private static final String ACTION_STATUS_CHANGED = "STATUS_CHANGED";
+    private static final String ACTION_TECHNICIAN_ASSIGNED = "TECHNICIAN_ASSIGNED";
 
     private final InterventionRepository interventionRepository;
     private final EquipmentRepository equipmentRepository;
@@ -40,23 +46,25 @@ public class InterventionServiceImpl implements InterventionService {
     @Override
     public Intervention createIntervention(InterventionRequestDto dto) {
         Equipment equipment = equipmentRepository.findById(dto.getEquipmentId())
-                .orElseThrow(() -> new RuntimeException("Equipment not found"));
+                .orElseThrow(() -> new RuntimeException("Equipment not found with id: " + dto.getEquipmentId()));
 
         User createdBy = userRepository.findById(dto.getCreatedById())
-                .orElseThrow(() -> new RuntimeException("Creator user not found"));
+                .orElseThrow(() -> new RuntimeException("User (creator) not found with id: " + dto.getCreatedById()));
 
         User assignedTechnician = null;
         if (dto.getAssignedTechnicianId() != null) {
             assignedTechnician = userRepository.findById(dto.getAssignedTechnicianId())
-                    .orElseThrow(() -> new RuntimeException("Assigned technician not found"));
+                    .orElseThrow(() -> new RuntimeException("Technician not found with id: " + dto.getAssignedTechnicianId()));
+            validateTechnicianRole(assignedTechnician);
         }
+        InterventionStatus status = dto.getStatus() != null ? dto.getStatus() : InterventionStatus.TO_DO;
 
         Intervention intervention = Intervention.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
-                .status(dto.getStatus())
+                .status(status)
                 .priority(dto.getPriority())
-                .createdAt(dto.getCreatedAt())
+                .createdAt(LocalDateTime.now())
                 .scheduledAt(dto.getScheduledAt())
                 .closedAt(dto.getClosedAt())
                 .equipment(equipment)
@@ -66,16 +74,8 @@ public class InterventionServiceImpl implements InterventionService {
 
         Intervention savedIntervention = interventionRepository.save(intervention);
 
-        InterventionHistory history = InterventionHistory.builder()
-                .actionType("CREATED")
-                .oldValue(null)
-                .newValue("Intervention created")
-                .changedAt(LocalDateTime.now())
-                .intervention(savedIntervention)
-                .changedBy(createdBy)
-                .build();
-
-        interventionHistoryRepository.save(history);
+        saveHistory(savedIntervention, createdBy, ACTION_CREATED, null,
+                "Intervention created with status " + savedIntervention.getStatus().name());
 
         return savedIntervention;
     }
@@ -86,42 +86,38 @@ public class InterventionServiceImpl implements InterventionService {
     }
 
     @Override
-    public Optional<Intervention> getInterventionById(Long id) {
-        return interventionRepository.findById(id);
-    }
+    public Intervention getInterventionById(Long id) {
+        return interventionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + id)); }
 
     @Override
     public void deleteIntervention(Long id) {
-        interventionRepository.deleteById(id);
+        Intervention intervention = interventionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + id));
+        interventionRepository.delete(intervention);
     }
 
     @Override
     public Intervention updateStatus(Long interventionId, InterventionStatus status, Long changedByUserId) {
         Intervention intervention = interventionRepository.findById(interventionId)
-                .orElseThrow(() -> new RuntimeException("Intervention not found"));
+                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + interventionId));
 
         User changedBy = userRepository.findById(changedByUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String oldStatus = intervention.getStatus().name();
+        InterventionStatus oldStatus = intervention.getStatus();
         intervention.setStatus(status);
 
         if (status == InterventionStatus.COMPLETED) {
             intervention.setClosedAt(LocalDateTime.now());
-        }
+        } else {
+            intervention.setClosedAt(null); }
 
         Intervention updatedIntervention = interventionRepository.save(intervention);
 
-        InterventionHistory history = InterventionHistory.builder()
-                .actionType("STATUS_CHANGED")
-                .oldValue(oldStatus)
-                .newValue(status.name())
-                .changedAt(LocalDateTime.now())
-                .intervention(updatedIntervention)
-                .changedBy(changedBy)
-                .build();
-
-        interventionHistoryRepository.save(history);
+        saveHistory(updatedIntervention, changedBy, ACTION_STATUS_CHANGED,
+                oldStatus != null ? oldStatus.name() : null,
+                status.name());
 
         return updatedIntervention;
     }
@@ -129,13 +125,14 @@ public class InterventionServiceImpl implements InterventionService {
     @Override
     public Intervention assignTechnician(Long interventionId, Long technicianId, Long changedByUserId) {
         Intervention intervention = interventionRepository.findById(interventionId)
-                .orElseThrow(() -> new RuntimeException("Intervention not found"));
+                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + interventionId));
 
         User technician = userRepository.findById(technicianId)
-                .orElseThrow(() -> new RuntimeException("Technician not found"));
+                .orElseThrow(() -> new RuntimeException("Technician not found with id: " + technicianId));
+        validateTechnicianRole(technician);
 
         User changedBy = userRepository.findById(changedByUserId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + changedByUserId));
 
         String oldValue = intervention.getAssignedTechnician() != null
                 ? intervention.getAssignedTechnician().getId().toString()
@@ -143,18 +140,48 @@ public class InterventionServiceImpl implements InterventionService {
 
         intervention.setAssignedTechnician(technician);
         Intervention updatedIntervention = interventionRepository.save(intervention);
+        saveHistory(updatedIntervention, changedBy, ACTION_TECHNICIAN_ASSIGNED,
+                oldValue,
+                technician.getId().toString());
+
+        return updatedIntervention;
+    }
+
+    @Override
+    public List<InterventionHistory> getInterventionHistory(Long interventionId) {
+        Intervention intervention = interventionRepository.findById(interventionId)
+                .orElseThrow(() -> new RuntimeException("Intervention not found with id: " + interventionId));
+
+        return interventionHistoryRepository.findByInterventionId(intervention.getId()).stream()
+                .sorted(Comparator.comparing(InterventionHistory::getChangedAt))
+                .toList();
+    }
+
+    private void validateTechnicianRole(User technician) {
+        if (technician.getRole() != Role.TECHNICIAN) {
+            throw new RuntimeException("User with id " + technician.getId() + " is not TECHNICIAN");
+        }
+    }
+
+    private void saveHistory(
+            Intervention intervention,
+            User changedBy,
+            String actionType,
+            String oldValue,
+            String newValue
+    ) {
 
         InterventionHistory history = InterventionHistory.builder()
-                .actionType("TECHNICIAN_ASSIGNED")
+                .actionType(actionType)
                 .oldValue(oldValue)
-                .newValue(technician.getId().toString())
+                .newValue(newValue)
                 .changedAt(LocalDateTime.now())
-                .intervention(updatedIntervention)
+                .intervention(intervention)
                 .changedBy(changedBy)
                 .build();
 
         interventionHistoryRepository.save(history);
 
-        return updatedIntervention;
+
     }
 }

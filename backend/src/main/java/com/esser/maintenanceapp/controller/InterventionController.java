@@ -6,7 +6,6 @@ import com.esser.maintenanceapp.dto.InterventionResponseDto;
 import com.esser.maintenanceapp.dto.UpdateStatusRequestDto;
 import com.esser.maintenanceapp.entity.Intervention;
 import com.esser.maintenanceapp.entity.InterventionHistory;
-import com.esser.maintenanceapp.service.InterventionHistoryService;
 import com.esser.maintenanceapp.service.InterventionService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +17,11 @@ import java.util.List;
 public class InterventionController {
 
     private final InterventionService interventionService;
-    private final InterventionHistoryService interventionHistoryService;
 
-    public InterventionController(InterventionService interventionService, InterventionHistoryService interventionHistoryService) {
+
+    public InterventionController(InterventionService interventionService) {
         this.interventionService = interventionService;
-        this.interventionHistoryService = interventionHistoryService;
+
     }
 
     @PostMapping
@@ -40,8 +39,7 @@ public class InterventionController {
 
     @GetMapping("/{id}")
     public InterventionResponseDto getInterventionById(@PathVariable Long id) {
-        Intervention intervention = interventionService.getInterventionById(id)
-                .orElseThrow(() -> new RuntimeException("Intervention not found"));
+        Intervention intervention = interventionService.getInterventionById(id);
         return mapToResponseDto(intervention);
     }
 
@@ -69,7 +67,7 @@ public class InterventionController {
     }
     @GetMapping("/{id}/history")
     public List<InterventionHistory> getInterventionHistory(@PathVariable Long id) {
-        return interventionHistoryService.getHistoryByInterventionId(id);
+        return interventionService.getInterventionHistory(id);
     }
 
     private InterventionResponseDto mapToResponseDto(Intervention intervention) {
