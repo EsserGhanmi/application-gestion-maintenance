@@ -53,7 +53,7 @@ public class InterventionServiceImpl implements InterventionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Equipment not found with id: " + dto.getEquipmentId()));
 
         User createdBy = userRepository.findById(dto.getCreatedById())
-                .orElseThrow(() -> new ResourceNotFoundException("Technician not found with id: " + dto.getAssignedTechnicianId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getCreatedById()));
 
         User assignedTechnician = null;
         if (dto.getAssignedTechnicianId() != null) {

@@ -1,12 +1,13 @@
 package com.esser.maintenanceapp.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import java.util.HashMap;
 import java.time.LocalDateTime;
@@ -39,6 +40,13 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(),
                 validationErrors
         );
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiErrorResponse> handleMessageNotReadable(HttpMessageNotReadableException ex,
+                                                                     HttpServletRequest request) {
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("body", "Malformed JSON request or invalid field format");
+        return buildResponse(HttpStatus.BAD_REQUEST, "Invalid request body", request.getRequestURI(), details);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
