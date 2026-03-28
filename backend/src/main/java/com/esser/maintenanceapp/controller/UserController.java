@@ -5,12 +5,15 @@ import com.esser.maintenanceapp.dto.UserResponseDto;
 import com.esser.maintenanceapp.entity.User;
 import com.esser.maintenanceapp.service.UserService;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
+@Tag(name = "Users", description = "Gestion des utilisateurs")
 public class UserController {
 
     private final UserService userService;
@@ -20,6 +23,7 @@ public class UserController {
     }
 
     @PostMapping
+    @Operation(summary = "Créer un utilisateur")
     public UserResponseDto createUser(@Valid @RequestBody UserRequestDto dto) {
         User user = User.builder()
                 .firstName(dto.getFirstName())
@@ -41,6 +45,7 @@ public class UserController {
     }
 
     @GetMapping
+    @Operation(summary = "Lister les utilisateurs")
     public List<UserResponseDto> getAllUsers() {
         return userService.getAllUsers().stream()
                 .map(user -> UserResponseDto.builder()

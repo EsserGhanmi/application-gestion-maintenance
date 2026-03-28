@@ -4,6 +4,7 @@ import com.esser.maintenanceapp.dto.InterventionRequestDto;
 import com.esser.maintenanceapp.entity.Intervention;
 import com.esser.maintenanceapp.enums.InterventionStatus;
 import com.esser.maintenanceapp.entity.InterventionHistory;
+import com.esser.maintenanceapp.enums.Priority;
 
 import java.util.List;
 
@@ -14,6 +15,8 @@ public interface InterventionService {
     List<Intervention> getAllInterventions();
 
     Intervention getInterventionById(Long id);
+
+    List<Intervention> getAllInterventions(InterventionStatus status, Priority priority, Long assignedTechnicianId);
 
     void deleteIntervention(Long id);
 

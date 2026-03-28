@@ -6,11 +6,14 @@ import com.esser.maintenanceapp.entity.Equipment;
 import com.esser.maintenanceapp.service.EquipmentService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/equipments")
+@Tag(name = "Equipments", description = "Gestion des équipements")
 public class EquipmentController {
 
     private final EquipmentService equipmentService;
@@ -20,6 +23,7 @@ public class EquipmentController {
     }
 
     @PostMapping
+    @Operation(summary = "Créer un équipement")
     public EquipmentResponseDto createEquipment(@Valid @RequestBody EquipmentRequestDto dto) {
         Equipment equipment = Equipment.builder()
                 .name(dto.getName())
@@ -40,6 +44,7 @@ public class EquipmentController {
     }
 
     @GetMapping
+    @Operation(summary = "Lister les équipements")
     public List<EquipmentResponseDto> getAllEquipments() {
         return equipmentService.getAllEquipments().stream()
                 .map(equipment -> EquipmentResponseDto.builder()

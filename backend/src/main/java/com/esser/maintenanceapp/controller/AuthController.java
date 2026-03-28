@@ -6,6 +6,8 @@ import com.esser.maintenanceapp.entity.User;
 import com.esser.maintenanceapp.exception.BadRequestException;
 import com.esser.maintenanceapp.exception.ResourceNotFoundException;
 import com.esser.maintenanceapp.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Auth", description = "Authentification")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -28,6 +31,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Authentifier un utilisateur")
     public AuthLoginResponseDto login(@Valid @RequestBody AuthLoginRequestDto dto) {
         try {
             authenticationManager.authenticate(

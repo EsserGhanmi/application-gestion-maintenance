@@ -15,6 +15,7 @@ import com.esser.maintenanceapp.repository.InterventionRepository;
 import com.esser.maintenanceapp.repository.UserRepository;
 import com.esser.maintenanceapp.service.InterventionService;
 import org.springframework.stereotype.Service;
+import com.esser.maintenanceapp.enums.Priority;
 
 
 import java.time.LocalDateTime;
@@ -59,8 +60,12 @@ public class InterventionServiceImpl implements InterventionService {
         if (dto.getAssignedTechnicianId() != null) {
             assignedTechnician = userRepository.findById(dto.getAssignedTechnicianId())
                     .orElseThrow(() -> new ResourceNotFoundException("Technician not found with id: " + dto.getAssignedTechnicianId()));
+            validateTechnicianRole(assignedTechnician);
         }
         InterventionStatus status = dto.getStatus() != null ? dto.getStatus() : InterventionStatus.TO_DO;
+        if (status == InterventionStatus.COMPLETED && assignedTechnician == null) {
+            throw new BadRequestException("Cannot create a COMPLETED intervention without an assigned technician");
+        }
 
         Intervention intervention = Intervention.builder()
                 .title(dto.getTitle())
@@ -87,6 +92,32 @@ public class InterventionServiceImpl implements InterventionService {
     public List<Intervention> getAllInterventions() {
         return interventionRepository.findAll();
     }
+    @Override
+    public List<Intervention> getAllInterventions(InterventionStatus status, Priority priority, Long assignedTechnicianId) {
+        if (status != null && priority != null && assignedTechnicianId != null) {
+            return interventionRepository.findByStatusAndPriorityAndAssignedTechnicianId(status, priority, assignedTechnicianId);
+        }
+        if (status != null && priority != null) {
+            return interventionRepository.findByStatusAndPriority(status, priority);
+        }
+        if (status != null && assignedTechnicianId != null) {
+            return interventionRepository.findByStatusAndAssignedTechnicianId(status, assignedTechnicianId);
+        }
+        if (priority != null && assignedTechnicianId != null) {
+            return interventionRepository.findByPriorityAndAssignedTechnicianId(priority, assignedTechnicianId);
+        }
+        if (status != null) {
+            return interventionRepository.findByStatus(status);
+        }
+        if (priority != null) {
+            return interventionRepository.findByPriority(priority);
+        }
+        if (assignedTechnicianId != null) {
+            return interventionRepository.findByAssignedTechnicianId(assignedTechnicianId);
+        }
+        return interventionRepository.findAll();
+    }
+
 
     @Override
     public Intervention getInterventionById(Long id) {
@@ -110,6 +141,7 @@ public class InterventionServiceImpl implements InterventionService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + changedByUserId));
 
         InterventionStatus oldStatus = intervention.getStatus();
+        validateStatusTransition(intervention, oldStatus, status);
         intervention.setStatus(status);
 
         if (status == InterventionStatus.COMPLETED) {
@@ -167,6 +199,29 @@ public class InterventionServiceImpl implements InterventionService {
             throw new BadRequestException("User with id " + technician.getId() + " is not TECHNICIAN");
         }
     }
+    private void validateStatusTransition(
+            Intervention intervention,
+            InterventionStatus oldStatus,
+            InterventionStatus newStatus
+    ) {
+        if (oldStatus == newStatus) {
+            throw new BadRequestException("Intervention is already in status " + newStatus.name());
+        }
+
+        if ((oldStatus == InterventionStatus.COMPLETED || oldStatus == InterventionStatus.CANCELLED)
+                && newStatus != oldStatus) {
+            throw new BadRequestException("Cannot change status after intervention is " + oldStatus.name());
+        }
+
+        if (newStatus == InterventionStatus.COMPLETED && intervention.getAssignedTechnician() == null) {
+            throw new BadRequestException("Cannot mark intervention as COMPLETED without an assigned technician");
+        }
+
+        if (oldStatus == InterventionStatus.IN_PROGRESS && newStatus == InterventionStatus.TO_DO) {
+            throw new BadRequestException("Cannot move status back from IN_PROGRESS to TO_DO");
+        }
+    }
+
 
     private void saveHistory(
             Intervention intervention,
