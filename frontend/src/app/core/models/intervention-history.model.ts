@@ -5,4 +5,6 @@ export interface InterventionHistory {
   newValue?: string | null;
   changedAt: string;
   changedByName?: string | null;
+  changedByEmail?: string | null;
+  changedById?: number | null;
 }

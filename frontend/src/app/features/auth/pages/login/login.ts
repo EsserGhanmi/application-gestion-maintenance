@@ -1,30 +1,35 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
+  
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.html',
-  styleUrl: './login.scss'
+  styleUrl: './login.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class LoginComponent {
-  errorMessage = '';
-  loading = false;
+  private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  loginForm = this.fb.group({
+  readonly loading = signal(false);
+  readonly errorMessage = signal('');
+  readonly isSubmitDisabled = computed(() => this.loading() || this.loginForm.invalid);
+ 
+
+  readonly loginForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required]]
+    password: ['', [Validators.required]],
   });
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  
 
   onSubmit(): void {
     if (this.loginForm.invalid) {
@@ -33,22 +38,18 @@ export class LoginComponent {
     }
 
     const { email, password } = this.loginForm.getRawValue();
-    this.loading = true;
-    this.errorMessage = '';
+     this.loading.set(true);
+    this.errorMessage.set('');
 
-    this.authService.login(email!, password!).subscribe({
-      next: (success) => {
-        this.loading = false;
-        if (success) {
-          this.router.navigate(['/interventions']);
-        } else {
-          this.errorMessage = 'Email ou mot de passe incorrect.';
-        }
-      },
-      error: () => {
-        this.loading = false;
-        this.errorMessage = 'Erreur lors de la connexion.';
+    this.authService.login(email, password).subscribe((isAuthenticated) => {
+      this.loading.set(false);
+
+      if (!isAuthenticated) {
+        this.errorMessage.set('Identifiants invalides. Vérifiez votre email et mot de passe.');
+        return;
       }
+       const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo') || '/interventions';
+      void this.router.navigateByUrl(redirectTo);
     });
   }
 }

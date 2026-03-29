@@ -3,9 +3,14 @@ export interface Intervention {
   title: string;
   description?: string;
   status: string;
+  priority?: string;
   assignedTo?: number | null;
+  assignedTechnicianId?: number | null;
   equipmentId?: number | null;
+  createdById?: number | null;
   createdAt?: string;
+  scheduledAt?: string | null;
+  closedAt?: string | null;
   updatedAt?: string;
 }
 
