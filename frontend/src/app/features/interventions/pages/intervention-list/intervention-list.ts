@@ -1,5 +1,5 @@
 
-import { AsyncPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -9,7 +9,7 @@ import { InterventionFilters, InterventionService } from '../../../../core/servi
 
 @Component({
   selector: 'app-intervention-list',
-  imports: [ReactiveFormsModule, AsyncPipe, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, DatePipe, RouterLink],
   templateUrl: './intervention-list.html',
   styleUrl: './intervention-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
