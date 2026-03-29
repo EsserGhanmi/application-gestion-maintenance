@@ -1,12 +1,21 @@
 import { Routes } from '@angular/router';
-import { Login } from './features/auth/pages/login/login';
-import { InterventionList } from './features/interventions/pages/intervention-list/intervention-list';
-import { InterventionDetail } from './features/interventions/pages/intervention-detail/intervention-detail';
+
 
 export const routes: Routes = [
-  { path: 'login', component: Login },
-  { path: 'interventions', component: InterventionList },
-  { path: 'interventions/:id', component: InterventionDetail },
+   {
+    path: 'login',
+    loadComponent: () => import('./features/auth/pages/login/login').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'interventions',
+    loadComponent: () =>
+      import('./features/interventions/pages/intervention-list/intervention-list').then((m) => m.InterventionListComponent),
+  },
+  {
+    path: 'interventions/:id',
+    loadComponent: () =>
+      import('./features/interventions/pages/intervention-detail/intervention-detail').then((m) => m.InterventionDetail),
+  },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: '**', redirectTo: '/login' }
+ { path: '**', redirectTo: '/login' },
 ];
