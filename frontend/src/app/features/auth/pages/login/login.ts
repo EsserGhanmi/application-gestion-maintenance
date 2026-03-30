@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService } from '../../../../core/services/auth';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs';
+
+import { AuthService } from '../../../../core/services/auth';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.html',
   styleUrl: './login.scss',
@@ -38,16 +39,18 @@ export class LoginComponent {
     this.loading.set(true);
     this.errorMessage.set('');
 
-    this.authService.login(email, password).subscribe((isAuthenticated) => {
-      this.loading.set(false);
+   this.authService
+      .login(email, password)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe((isAuthenticated) => {
+        if (!isAuthenticated) {
+          this.errorMessage.set('Identifiants invalides. Vérifiez votre email et mot de passe.');
+          return;
+        }
 
-      if (!isAuthenticated) {
-        this.errorMessage.set('Identifiants invalides. Vérifiez votre email et mot de passe.');
-        return;
-      }
-
-      const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo') || '/interventions';
-      void this.router.navigateByUrl(redirectTo);
-    });
+        const redirectCandidate = this.route.snapshot.queryParamMap.get('redirectTo');
+        const redirectTo = redirectCandidate?.startsWith('/') ? redirectCandidate : '/interventions';
+        void this.router.navigateByUrl(redirectTo);
+      }); 
   }
 }

@@ -1,11 +1,18 @@
+
+<a class="visually-hidden-focusable position-absolute top-0 start-0 m-2 p-2 bg-white border rounded" href="#main-content">
+  Aller au contenu principal
+</a>
 <header class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
   <nav class="container" aria-label="Navigation principale">
-    <a class="navbar-brand" routerLink="/">Gestion maintenance</a>
-    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+ <a class="navbar-brand" routerLink="/interventions">Gestion maintenance</a>
+     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
       <li class="nav-item">
         <a class="nav-link" routerLink="/interventions" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
           Interventions
         </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/login" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Connexion</a>
       </li>
     </ul>
   </nav>
