@@ -18,6 +18,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/interventions/pages/intervention-detail/intervention-detail').then((m) => m.InterventionDetailComponent),
   },
-{ path: '', redirectTo: '/interventions', pathMatch: 'full' },
-  { path: '**', redirectTo: '/interventions' },
-]; 
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: '**', redirectTo: '/login' },
+];

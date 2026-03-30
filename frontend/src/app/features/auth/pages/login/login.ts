@@ -6,12 +6,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
-  
+  standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.html',
   styleUrl: './login.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
@@ -21,15 +20,13 @@ export class LoginComponent {
 
   readonly loading = signal(false);
   readonly errorMessage = signal('');
-  readonly isSubmitDisabled = computed(() => this.loading() || this.loginForm.invalid);
- 
 
   readonly loginForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
   });
 
-  
+  readonly isSubmitDisabled = computed(() => this.loading() || this.loginForm.invalid);
 
   onSubmit(): void {
     if (this.loginForm.invalid) {
@@ -38,7 +35,7 @@ export class LoginComponent {
     }
 
     const { email, password } = this.loginForm.getRawValue();
-     this.loading.set(true);
+    this.loading.set(true);
     this.errorMessage.set('');
 
     this.authService.login(email, password).subscribe((isAuthenticated) => {
@@ -48,7 +45,8 @@ export class LoginComponent {
         this.errorMessage.set('Identifiants invalides. Vérifiez votre email et mot de passe.');
         return;
       }
-       const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo') || '/interventions';
+
+      const redirectTo = this.route.snapshot.queryParamMap.get('redirectTo') || '/interventions';
       void this.router.navigateByUrl(redirectTo);
     });
   }
